@@ -109,11 +109,79 @@ Additional features:
   - Status indicators: [describe]
 ```
 
+#### ASCII Mockups
+
+After the proposal summary, show ASCII mockups for every view so the user can visualize the layout before any code is written. Generate these from the CRD fields identified in the analysis.
+
+**List page mockup:**
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ <ResourceName>s                      [Create] [Filter ▾] │
+├────────────┬────────────┬──────────┬────────────────────┤
+│ Name       │ Namespace  │ Status   │ <key-spec-field>   │
+├────────────┼────────────┼──────────┼────────────────────┤
+│ example-1  │ default    │ ● Ready  │ <value>            │
+│ example-2  │ my-ns      │ ◐ Progressing │ <value>       │
+│ example-3  │ default    │ ✖ Failed │ <value>            │
+└────────────┴────────────┴──────────┴────────────────────┘
+```
+
+Use the actual CRD field names as column headers. Pick 3-5 columns from the spec/status that are most useful at a glance.
+
+**Detail page mockup:**
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ <ResourceName>: example-1          [Actions ▾]           │
+│ Namespace: default    Status: ● Ready                    │
+├──────────────────────────────────────────────────────────┤
+│ [Overview]  [YAML]  [Events]                             │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  <spec-field-1>:     <value>                             │
+│  <spec-field-2>:     <value>                             │
+│  <spec-field-3>:     <value>                             │
+│                                                          │
+│  Conditions:                                             │
+│  ┌──────────┬────────┬─────────────┬──────────────────┐  │
+│  │ Type     │ Status │ Last Update │ Message          │  │
+│  ├──────────┼────────┼─────────────┼──────────────────┤  │
+│  │ Ready    │ True   │ 2m ago      │ All checks pass  │  │
+│  │ Degraded │ False  │ 5m ago      │ —                │  │
+│  └──────────┴────────┴─────────────┴──────────────────┘  │
+└──────────────────────────────────────────────────────────┘
+```
+
+**Create/Edit form mockup:**
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ Create <ResourceName>                                    │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  Name *              [___________________________]       │
+│  Namespace *         [default                  ▾]        │
+│                                                          │
+│  <spec-field-1> *    [___________________________]       │
+│  <spec-field-2>      [___________________________]       │
+│  <enum-field>        [Option A                 ▾]        │
+│  <bool-field>        [  OFF ○─────]                      │
+│                                                          │
+│  ▶ Advanced Settings                                     │
+│                                                          │
+│                          [Cancel]  [Create]              │
+└──────────────────────────────────────────────────────────┘
+```
+
+Populate every mockup with the actual field names and realistic sample values from the CRD. Show one mockup set per custom resource.
+
 Ask the user:
 - "Do these views cover what you need?"
 - "Any workflows missing?"
 - "Any views you'd remove or add?"
 - "Does the nav placement make sense?"
+- "Do the mockup layouts look right — any columns or fields to add, remove, or reorder?"
 
 Iterate until the user approves. Then lock the architecture.
 

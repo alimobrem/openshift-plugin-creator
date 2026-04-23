@@ -7,7 +7,7 @@ A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that creat
 Given an operator with custom resources, this skill:
 
 1. **Analyzes** your operator's CRDs, controllers, and RBAC to understand its resources
-2. **Proposes** a plugin architecture — which views to build, where they go in the console, how status maps to visual states
+2. **Proposes** a plugin architecture with ASCII mockups — which views to build, where they go in the console, and how they'll look before any code is written
 3. **Scaffolds** a project from the official [console-plugin-template](https://github.com/openshift/console-plugin-template) with all routes and nav items wired up
 4. **Builds** production-quality views for every custom resource — list pages, detail pages, create/edit forms, delete modals — using PatternFly 6 and the console SDK
 5. **Adds infrastructure** — GitHub Actions CI, Helm chart, Cypress E2E tests
@@ -30,7 +30,8 @@ Each phase has a checkpoint where you review and adjust before proceeding.
 ## Installation
 
 ```bash
-claude install alimobrem/openshift-plugin-creator
+claude plugin marketplace add alimobrem/openshift-plugin-creator
+claude plugin install openshift-plugin-creator
 ```
 
 ## Prerequisites
@@ -61,7 +62,7 @@ Or invoke the skill directly:
 > /openshift-plugin-creator
 ```
 
-The skill walks you through each phase interactively. It asks two questions up front (your operator repo URL and where the new plugin repo should live), then analyzes the operator and presents an architecture proposal for your approval.
+The skill walks you through each phase interactively. It asks two questions up front (your operator repo URL and where the new plugin repo should live), then analyzes the operator and presents an architecture proposal with ASCII mockups for your approval.
 
 ## Example
 
@@ -81,7 +82,17 @@ Navigation:
     - NodeHealthCheck (list + detail + create/edit)
     - NodeHealthCheckConfig (list + detail)
 
-Does this architecture look right?
+┌──────────────────────────────────────────────────────────┐
+│ NodeHealthChecks                     [Create] [Filter ▾] │
+├──────────────┬────────────┬──────────┬──────────────────┤
+│ Name         │ Namespace  │ Status   │ Min Healthy      │
+├──────────────┼────────────┼──────────┼──────────────────┤
+│ nhc-workers  │ medik8s    │ ● Ready  │ 51%              │
+│ nhc-infra    │ medik8s    │ ◐ Progressing │ 40%          │
+│ nhc-all      │ default    │ ✖ Failed │ 75%              │
+└──────────────┴────────────┴──────────┴──────────────────┘
+
+Do these views and layouts look right?
 ```
 
 ## How It Works
