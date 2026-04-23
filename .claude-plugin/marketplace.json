@@ -1,0 +1,18 @@
+{
+  "name": "openshift-plugin-creator",
+  "description": "Marketplace for the OpenShift Console dynamic plugin creator",
+  "owner": {
+    "name": "alimobrem"
+  },
+  "plugins": [
+    {
+      "name": "openshift-plugin-creator",
+      "description": "Create fully working OpenShift Console dynamic plugins for operators",
+      "category": "development",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/alimobrem/openshift-plugin-creator.git"
+      }
+    }
+  ]
+}
