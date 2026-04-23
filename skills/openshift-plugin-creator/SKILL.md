@@ -156,7 +156,17 @@ Create the project and configure the skeleton.
    yarn build
    ```
 
-7. Commit: "scaffold: configure plugin metadata and extensions"
+7. Update `README.md` with:
+   - Plugin name and one-line description
+   - What operator it's for (with link to the operator repo)
+   - What views/features the plugin provides (from the approved architecture)
+   - Screenshots section (placeholder — user can add after deploying)
+   - Prerequisites (Node.js, Yarn, Docker/Podman, oc CLI, OpenShift cluster)
+   - Local development instructions (`yarn install`, `yarn start`, `oc login`, `yarn start-console`)
+   - Deployment instructions (Helm install command with the correct image path)
+   - Links to the operator docs and PatternFly docs
+
+8. Commit: "scaffold: configure plugin metadata, extensions, and README"
 
 ### Checkpoint
 
