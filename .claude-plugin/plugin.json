@@ -1,0 +1,10 @@
+{
+  "name": "openshift-plugin-creator",
+  "description": "Create fully working OpenShift Console dynamic plugins for operators. Analyzes operator repos, proposes architecture, scaffolds from console-plugin-template, generates PatternFly 6 views, configures CI/CD, and deploys to clusters.",
+  "version": "1.0.0",
+  "author": {
+    "name": "alimobrem"
+  },
+  "repository": "https://github.com/alimobrem/openshift-plugin-creator",
+  "license": "Apache-2.0"
+}
