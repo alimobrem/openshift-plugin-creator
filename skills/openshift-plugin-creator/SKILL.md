@@ -16,7 +16,7 @@ Build a complete, production-ready OpenShift Console dynamic plugin for any oper
 Before starting, verify the user has these tools available. Run the checks and report what's missing:
 
 ```bash
-gh --version        # GitHub CLI (optional — needed only for GitHub repo creation and CI)
+gh --version        # GitHub CLI, authenticated
 oc version          # OpenShift CLI
 node --version      # Node.js
 yarn --version      # Yarn 4.13.0+
@@ -24,17 +24,16 @@ docker --version || podman --version  # Container runtime
 ```
 
 The user also needs:
+- A **GitHub account** with `gh auth login` completed — required for repo creation, CI, and sharing the plugin with others
 - An **existing operator** with a public GitHub repo
 - **OpenShift cluster access** — `oc` CLI installed, able to `oc login` (required)
 
-**Optional accounts (ask the user):**
-- **GitHub account** — for creating a repo and CI. If unavailable, scaffold the project locally and skip CI setup.
+**Optional (ask the user):**
 - **Quay.io account** — for hosting the container image externally. If unavailable, use OpenShift's internal registry instead (see Phase 5).
 
 If Node.js, Yarn, or Docker/Podman are missing, install them for the user rather than asking them to do it manually. Use the appropriate package manager for their platform (e.g., `brew install node` on macOS, `dnf install` on Fedora/RHEL). Install Yarn via `corepack enable && corepack prepare yarn@stable --activate`. These are standard dev tools with no configuration decisions — just install and move on.
 
 Track the user's setup as a variable for later phases:
-- `has_github`: whether `gh` is authenticated
 - `has_quay`: whether the user has a Quay.io account
 
 ---
@@ -126,20 +125,10 @@ Create the project and configure the skeleton.
 
 ### Steps
 
-1. Create the project from the template:
-
-   **If `has_github`:**
+1. Create the repo from the template:
    ```bash
    gh repo create <org>/<plugin-name> --template openshift/console-plugin-template --public --clone
    cd <plugin-name>
-   ```
-
-   **If no GitHub:**
-   ```bash
-   git clone https://github.com/openshift/console-plugin-template.git <plugin-name>
-   cd <plugin-name>
-   rm -rf .git
-   git init
    ```
 
 2. Update `package.json` — set these fields in the `consolePlugin` section:
@@ -266,9 +255,7 @@ Commit after completing all views: "feat: implement all resource views and compo
 
 Read `references/deployment.md` for detailed configuration patterns.
 
-### CI — GitHub Actions (if `has_github`)
-
-Skip this section if the user doesn't have GitHub. The plugin will still work — they just won't have automated CI.
+### CI — GitHub Actions
 
 Create `.github/workflows/` with these workflow files:
 
@@ -279,7 +266,7 @@ Create `.github/workflows/` with these workflow files:
 - yarn build
 ```
 
-**build-and-push.yml** (on push to main, only if `has_quay`):
+**build-and-push.yml** (on push to main, only if `has_quay` — skip this workflow otherwise):
 ```yaml
 - Build Docker image
 - Tag with commit SHA and 'latest'
@@ -348,7 +335,7 @@ Guide the user step by step:
 2. Create a robot account: User Settings > Robot Accounts > Create Robot Account
 3. Grant the robot write access to the repository
 4. Copy the robot credentials
-5. If `has_github`, add them as GitHub secrets:
+5. Add them as GitHub secrets:
    - `QUAY_USERNAME`: the robot account name (format: `orgname+robotname`)
    - `QUAY_PASSWORD`: the robot token
 6. Test the pipeline:
@@ -416,10 +403,10 @@ oc patch consoles.operator.openshift.io cluster \
 ### Wrap-Up
 
 Summarize what was created:
-- GitHub repo URL (if `has_github`) or local project path
+- GitHub repo URL
 - Image location: Quay URL (if `has_quay`) or internal registry path
 - List of all views and extensions
-- CI pipeline status (if `has_github`)
+- CI pipeline status
 - Deployed cluster (if applicable)
 
 Suggest next steps:
