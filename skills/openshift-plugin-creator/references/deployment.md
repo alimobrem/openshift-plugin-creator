@@ -116,6 +116,42 @@ jobs:
             integration-tests/videos
 ```
 
+## Image Registry Setup
+
+### OpenShift Internal Registry (No Quay Required)
+
+If the user doesn't have Quay.io, use the cluster's built-in registry:
+
+```bash
+# Expose the internal registry route (one-time setup)
+oc patch configs.imageregistry.operator.openshift.io/cluster \
+  --patch '{"spec":{"defaultRoute":true}}' --type=merge
+
+# Get the registry URL
+REGISTRY=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
+
+# Login using your OpenShift credentials
+docker login -u $(oc whoami) -p $(oc whoami -t) $REGISTRY
+
+# Build the plugin image
+docker build -t $REGISTRY/<namespace>/<plugin-name>:latest .
+
+# Push to the internal registry
+docker push $REGISTRY/<namespace>/<plugin-name>:latest
+```
+
+The internal image path for Helm is:
+`image-registry.openshift-image-registry.svc:5000/<namespace>/<plugin-name>:latest`
+
+```bash
+# Deploy with Helm using internal registry
+helm upgrade -i <plugin-name> charts/openshift-console-plugin \
+  -n <plugin-name> --create-namespace \
+  --set plugin.image=image-registry.openshift-image-registry.svc:5000/<namespace>/<plugin-name>:latest
+```
+
+---
+
 ## Quay.io Setup
 
 ### Creating a Robot Account

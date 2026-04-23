@@ -16,7 +16,7 @@ Build a complete, production-ready OpenShift Console dynamic plugin for any oper
 Before starting, verify the user has these tools available. Run the checks and report what's missing:
 
 ```bash
-gh --version        # GitHub CLI, authenticated
+gh --version        # GitHub CLI (optional — needed only for GitHub repo creation and CI)
 oc version          # OpenShift CLI
 node --version      # Node.js
 yarn --version      # Yarn 4.13.0+
@@ -24,14 +24,18 @@ docker --version || podman --version  # Container runtime
 ```
 
 The user also needs:
-- A **GitHub account** with `gh auth login` completed
-- A **Quay.io account** for container image hosting
 - An **existing operator** with a public GitHub repo
-- **OpenShift cluster access** for local dev and deployment
+- **OpenShift cluster access** — `oc` CLI installed, able to `oc login` (required)
+
+**Optional accounts (ask the user):**
+- **GitHub account** — for creating a repo and CI. If unavailable, scaffold the project locally and skip CI setup.
+- **Quay.io account** — for hosting the container image externally. If unavailable, use OpenShift's internal registry instead (see Phase 5).
 
 If Node.js, Yarn, or Docker/Podman are missing, install them for the user rather than asking them to do it manually. Use the appropriate package manager for their platform (e.g., `brew install node` on macOS, `dnf install` on Fedora/RHEL). Install Yarn via `corepack enable && corepack prepare yarn@stable --activate`. These are standard dev tools with no configuration decisions — just install and move on.
 
-Tell the user what's missing for items 1-4 (accounts and cluster access) since those require credentials and manual setup. Do not skip prerequisites — a missing tool will block a later phase and waste work.
+Track the user's setup as a variable for later phases:
+- `has_github`: whether `gh` is authenticated
+- `has_quay`: whether the user has a Quay.io account
 
 ---
 
@@ -118,14 +122,24 @@ Iterate until the user approves. Then lock the architecture.
 
 ## Phase 2: Scaffold
 
-Create the GitHub repo and configure the project skeleton.
+Create the project and configure the skeleton.
 
 ### Steps
 
-1. Create the repo from the template:
+1. Create the project from the template:
+
+   **If `has_github`:**
    ```bash
    gh repo create <org>/<plugin-name> --template openshift/console-plugin-template --public --clone
    cd <plugin-name>
+   ```
+
+   **If no GitHub:**
+   ```bash
+   git clone https://github.com/openshift/console-plugin-template.git <plugin-name>
+   cd <plugin-name>
+   rm -rf .git
+   git init
    ```
 
 2. Update `package.json` — set these fields in the `consolePlugin` section:
@@ -252,7 +266,9 @@ Commit after completing all views: "feat: implement all resource views and compo
 
 Read `references/deployment.md` for detailed configuration patterns.
 
-### GitHub Actions CI
+### CI — GitHub Actions (if `has_github`)
+
+Skip this section if the user doesn't have GitHub. The plugin will still work — they just won't have automated CI.
 
 Create `.github/workflows/` with these workflow files:
 
@@ -263,7 +279,7 @@ Create `.github/workflows/` with these workflow files:
 - yarn build
 ```
 
-**build-and-push.yml** (on push to main):
+**build-and-push.yml** (on push to main, only if `has_quay`):
 ```yaml
 - Build Docker image
 - Tag with commit SHA and 'latest'
@@ -271,7 +287,7 @@ Create `.github/workflows/` with these workflow files:
 - Push to quay.io/<org>/<plugin-name>
 ```
 
-Tell the user they need to add `QUAY_USERNAME` and `QUAY_PASSWORD` as GitHub repo secrets. Walk them through: GitHub repo > Settings > Secrets and variables > Actions > New repository secret.
+If `has_quay`, tell the user they need to add `QUAY_USERNAME` and `QUAY_PASSWORD` as GitHub repo secrets. Walk them through: GitHub repo > Settings > Secrets and variables > Actions > New repository secret.
 
 **e2e.yml** (manual trigger via workflow_dispatch):
 ```yaml
@@ -284,7 +300,10 @@ Tell the user they need to add `QUAY_USERNAME` and `QUAY_PASSWORD` as GitHub rep
 
 Update the chart in `charts/openshift-console-plugin/`:
 - `Chart.yaml`: set `name` and `description`
-- `values.yaml`: set `plugin.image` to `quay.io/<org>/<plugin-name>`, configure port (9443), replicas (2)
+- `values.yaml`:
+  - If `has_quay`: set `plugin.image` to `quay.io/<org>/<plugin-name>`
+  - If no Quay: set `plugin.image` to `image-registry.openshift-image-registry.svc:5000/<namespace>/<plugin-name>`
+- Configure port (9443), replicas (2)
 - Verify `consoleplugin.yaml` template references the correct display name
 
 ### Tests
@@ -319,7 +338,9 @@ yarn start-console
 
 Tell them to open http://localhost:9000 and navigate to their plugin's pages. Explain that component changes hot-reload, but `console-extensions.json` changes require restarting `yarn start`.
 
-### Quay Setup
+### Image Registry Setup
+
+**If `has_quay` — Quay.io setup:**
 
 Guide the user step by step:
 
@@ -327,7 +348,7 @@ Guide the user step by step:
 2. Create a robot account: User Settings > Robot Accounts > Create Robot Account
 3. Grant the robot write access to the repository
 4. Copy the robot credentials
-5. Add them as GitHub secrets:
+5. If `has_github`, add them as GitHub secrets:
    - `QUAY_USERNAME`: the robot account name (format: `orgname+robotname`)
    - `QUAY_PASSWORD`: the robot token
 6. Test the pipeline:
@@ -336,20 +357,52 @@ Guide the user step by step:
    docker push quay.io/<org>/<plugin-name>:test
    ```
 
+**If no Quay — OpenShift internal registry:**
+
+Build and push directly to the cluster's internal registry. No external account needed.
+
+```bash
+# Expose the internal registry (if not already exposed)
+oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
+
+# Get the registry route
+REGISTRY=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
+
+# Login to the internal registry
+docker login -u $(oc whoami) -p $(oc whoami -t) $REGISTRY
+
+# Build and push
+docker build -t $REGISTRY/<namespace>/<plugin-name>:latest .
+docker push $REGISTRY/<namespace>/<plugin-name>:latest
+```
+
+The image is accessible within the cluster at `image-registry.openshift-image-registry.svc:5000/<namespace>/<plugin-name>:latest`.
+
 ### Cluster Deployment
 
 Deploy to an OpenShift cluster:
 
+**If `has_quay`:**
 ```bash
-# Build and push (or let CI do it)
 docker build -t quay.io/<org>/<plugin-name>:latest .
 docker push quay.io/<org>/<plugin-name>:latest
 
-# Deploy with Helm
 helm upgrade -i <plugin-name> charts/openshift-console-plugin \
   -n <plugin-name> --create-namespace \
   --set plugin.image=quay.io/<org>/<plugin-name>:latest
+```
 
+**If no Quay (internal registry):**
+```bash
+# Build and push to internal registry (see above)
+# Then deploy with Helm using the internal image path
+helm upgrade -i <plugin-name> charts/openshift-console-plugin \
+  -n <plugin-name> --create-namespace \
+  --set plugin.image=image-registry.openshift-image-registry.svc:5000/<namespace>/<plugin-name>:latest
+```
+
+**Both paths — verify and enable:**
+```bash
 # Verify the ConsolePlugin CR was created
 oc get consoleplugin <plugin-name>
 
@@ -357,17 +410,16 @@ oc get consoleplugin <plugin-name>
 oc patch consoles.operator.openshift.io cluster \
   --patch '{"spec":{"plugins":["<plugin-name>"]}}' --type=merge
 
-# Verify in the console
-# Navigate to the plugin's pages and confirm everything works
+# Verify in the console — navigate to the plugin's pages
 ```
 
 ### Wrap-Up
 
 Summarize what was created:
-- GitHub repo URL
-- Quay image URL
+- GitHub repo URL (if `has_github`) or local project path
+- Image location: Quay URL (if `has_quay`) or internal registry path
 - List of all views and extensions
-- CI pipeline status
+- CI pipeline status (if `has_github`)
 - Deployed cluster (if applicable)
 
 Suggest next steps:
