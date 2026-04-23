@@ -29,7 +29,9 @@ The user also needs:
 - An **existing operator** with a public GitHub repo
 - **OpenShift cluster access** for local dev and deployment
 
-Tell the user what's missing and help them install/configure before proceeding. Do not skip prerequisites — a missing tool will block a later phase and waste work.
+If Node.js, Yarn, or Docker/Podman are missing, install them for the user rather than asking them to do it manually. Use the appropriate package manager for their platform (e.g., `brew install node` on macOS, `dnf install` on Fedora/RHEL). Install Yarn via `corepack enable && corepack prepare yarn@stable --activate`. These are standard dev tools with no configuration decisions — just install and move on.
+
+Tell the user what's missing for items 1-4 (accounts and cluster access) since those require credentials and manual setup. Do not skip prerequisites — a missing tool will block a later phase and waste work.
 
 ---
 
